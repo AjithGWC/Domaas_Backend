@@ -34,6 +34,7 @@ def create_card():
             "Referer": refer,
             "x-domo-requestcontext": '{"clientToe":"HI1KFS4VEI-6L56F"}',
             "Content-Type": "application/json",
+            "accept-language":"en",
             "Cookie": cookie_value
         }
 
