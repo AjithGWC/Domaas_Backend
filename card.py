@@ -13,7 +13,7 @@ def create_card():
         # Parse input
         data = request.get_json()
         cookie_value = data.get('cookie')
-        body = data.get('body')
+        body = data.get('chartBody')
         access_token = data.get('access_token')
         refer = data.get('refer')
         print(".........",cookie_value)
