@@ -1,0 +1,128 @@
+Perfect — you're aiming for true automation: when an extract is refreshed in Tableau Cloud, your FastAPI endpoint should immediately refetch the updated .hyper data — even if nothing is local. This is 100% possible using Tableau Cloud webhooks.
+Let’s break this into the real-world setup you need:
+✅ What You Have
+✅ Tableau Cloud datasources
+✅ A FastAPI app that fetches data from .hyper files in those datasources
+✅ Your endpoint works when manually hit: /download-datasources
+
+🧠 What You Want
+Whenever a published datasource with extract is refreshed on Tableau Cloud, your FastAPI code should:
+
+🟢 Automatically run
+🟢 Download the updated .hyper extract
+🟢 Read and return new data
+
+✅ Solution: Webhooks in Tableau Cloud
+🔁 How It Works:
+Datasource extract is refreshed (manually or via schedule).
+Tableau Cloud fires a webhook for the event extract-refresh.succeeded.
+Tableau sends a POST request to your FastAPI endpoint.
+Your FastAPI code runs, downloads the updated extract, and processes it.
+
+🛠️ Step-by-Step Setup
+✅ 1. Modify FastAPI Endpoint to Accept Webhook POST
+Update your endpoint so Tableau can POST to it:
+
+python
+Copy
+Edit
+
+                                from fastapi import Request
+
+                                @app.post("/webhook-trigger")
+                                async def handle_webhook(request: Request):
+                                    payload = await request.json()
+                                    print("Webhook payload:", payload)
+
+                                    # (Optional) filter by datasource ID or name if needed
+                                    return download_all_datasources()
+
+And make sure download_all_datasources() is callable from inside this handler.
+
+✅ 2. Deploy Your FastAPI API Publicly
+Since Tableau Cloud needs to reach your API, your FastAPI app must be publicly available. You can:
+
+Use ngrok (for testing): ngrok http 8000
+Or deploy to:
+Render.com (free tier works)
+Heroku
+AWS EC2
+Railway, etc.
+
+Get a public URL like:
+arduino
+Copy
+Edit
+
+                                https://your-api.render.com/webhook-trigger
+
+✅ 3. Register a Webhook in Tableau Cloud
+Use Tableau REST API (or manually via Tableau UI if available):
+
+🧪 Using Python + requests:
+python
+Copy
+Edit
+
+                                import requests
+
+                                TABLEAU_SITE_ID = 'your_site_id'  # use '' if default site
+                                TOKEN_NAME = 'your_token_name'
+                                TOKEN_SECRET = 'your_token_value'
+                                TABLEAU_BASE_URL = 'https://prod-apnortheast-a.online.tableau.com'
+
+                                headers = {
+                                    "Content-Type": "application/json",
+                                    "Accept": "application/json"
+                                }
+
+                                # Step 1: Sign in and get auth token
+                                auth_payload = {
+                                    "credentials": {
+                                        "personalAccessTokenName": TOKEN_NAME,
+                                        "personalAccessTokenSecret": TOKEN_SECRET,
+                                        "site": { "contentUrl": TABLEAU_SITE_ID }
+                                    }
+                                }
+
+                                auth_response = requests.post(
+                                    f"{TABLEAU_BASE_URL}/api/3.18/auth/signin",
+                                    json=auth_payload,
+                                    headers=headers
+                                )
+
+                                auth_token = auth_response.json()["credentials"]["token"]
+                                site_id = auth_response.json()["credentials"]["site"]["id"]
+
+                                # Step 2: Create webhook
+                                webhook_payload = {
+                                    "webhook": {
+                                        "name": "RefreshToFetch",
+                                        "event": "extract-refresh.succeeded",
+                                        "url": "https://your-api.render.com/webhook-trigger"  # Replace with your actual FastAPI URL
+                                    }
+                                }
+
+                                webhook_response = requests.post(
+                                    f"{TABLEAU_BASE_URL}/api/3.18/sites/{site_id}/webhooks",
+                                    json=webhook_payload,
+                                    headers={**headers, "X-Tableau-Auth": auth_token}
+                                )
+
+                                print("Webhook created:", webhook_response.json())
+
+✅ 4. Done!
+Now when the extract refresh happens in Tableau Cloud:
+Tableau hits your webhook
+Your FastAPI code runs
+Updated .hyper data is fetched and processed!
+
+🛡 Bonus Tips
+✅ Secure your webhook: add a token or header check to verify it's Tableau
+🔍 Log incoming events for traceability
+🎯 If needed, filter by datasource ID inside the webhook handler using the payload
+
+Want me to help you:
+Set up the webhook script in your context?
+Show how to deploy FastAPI to Render or Railway in 5 minutes?
+Let’s get this automation rolling!
