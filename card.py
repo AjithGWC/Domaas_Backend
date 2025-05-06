@@ -36,7 +36,7 @@ def create_card():
 
         # Send request 
         domo_response = requests.put(url, headers=headers, data=json.dumps(body))
-        print("....", domo_response.data)
+        print("....", domo_response)
 
         # Return response
         return jsonify({
