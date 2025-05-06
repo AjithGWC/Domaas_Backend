@@ -16,7 +16,10 @@ def create_card():
         body = data.get('body')
         access_token = data.get('access_token')
         refer = data.get('refer')
-        # print(".........",cookie_value, body, access_token, refer)
+        print(".........",cookie_value)
+        print(body)
+        print(access_token)
+        print(refer)
 
         if not cookie_value or not body:
             return jsonify({"error": "Both 'cookie' and 'body' fields are required"}), 400
