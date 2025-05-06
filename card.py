@@ -6,7 +6,7 @@ import json
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all domains
 
-@app.route('/create-card', methods=['PUT'])
+@app.route('/create-card', methods=['POST'])
 def create_card():
     try:
         print("1")
