@@ -6,17 +6,20 @@ import json
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all domains
 
-@app.route('/create-card', methods=['PUT'])
+@app.route('/create-card', methods=['POST'])
 def create_card():
     try:
         print("1")
         # Parse input
         data = request.get_json()
         cookie_value = data.get('cookie')
-        body = data.get('body')
+        body = data.get('chartBody')
         access_token = data.get('access_token')
         refer = data.get('refer')
-        # print(".........")
+        print(".........",cookie_value)
+        print(body)
+        print(access_token)
+        print(refer)
 
         if not cookie_value or not body:
             return jsonify({"error": "Both 'cookie' and 'body' fields are required"}), 400
@@ -31,12 +34,13 @@ def create_card():
             "Referer": refer,
             "x-domo-requestcontext": '{"clientToe":"HI1KFS4VEI-6L56F"}',
             "Content-Type": "application/json",
+            "accept-language":"en",
             "Cookie": cookie_value
         }
 
         # Send request 
         domo_response = requests.put(url, headers=headers, data=json.dumps(body))
-        print("....", domo_response.data)
+        print("....", domo_response.json())
 
         # Return response
         return jsonify({
