@@ -209,7 +209,64 @@ def extract_data():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
+@app.route('/extract-table', methods=['POST'])
+def upload_hyper():
+    try:
+        # Check if file part present
+        if 'file' not in request.files:
+            return jsonify({"error": "No file part in the request"}), 400
 
+        file = request.files['file']
+
+        # Accept both .tdsx and .twbx files
+        if not (file.filename.endswith('.tdsx') or file.filename.endswith('.twbx')):
+            return jsonify({"error": "Only .tdsx or .twbx files are supported"}), 400
+
+        file_data = file.read()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            archive_path = os.path.join(tmpdir, file.filename)
+            with open(archive_path, 'wb') as f:
+                f.write(file_data)
+
+            # Extract archive
+            with zipfile.ZipFile(archive_path, 'r') as zip_ref:
+                zip_ref.extractall(tmpdir)
+
+            # Find all .hyper files inside extracted folder
+            hyper_files = []
+            for root, _, files in os.walk(tmpdir):
+                for f in files:
+                    if f.endswith('.hyper'):
+                        hyper_files.append(os.path.join(root, f))
+
+            if not hyper_files:
+                return jsonify({"error": "No .hyper files found in the uploaded file"}), 404
+
+            result = []
+
+            # Open each hyper file and extract tables
+            with HyperProcess(telemetry=Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU) as hyper:
+                for hyper_path in hyper_files:
+                    with Connection(endpoint=hyper.endpoint, database=hyper_path) as connection:
+                        schema_names = connection.catalog.get_schema_names()
+                        for schema in schema_names:
+                            tables = connection.catalog.get_table_names(schema)
+                            for table in tables:
+                                # Clean schema and table names:
+                                schema_name = str(schema.name).strip('"')
+                                table_name_raw = str(table.name).strip('"')
+                                # Extract prefix before first underscore in table name
+                                table_name = table_name_raw.split('_')[0]
+                                result.append({
+                                    "schema": schema_name,
+                                    "table": table_name
+                                })
+
+            return jsonify(result)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
